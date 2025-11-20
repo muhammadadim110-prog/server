@@ -1,4 +1,4 @@
-const {user} = require('../models');
+const { Users } = require('../models');
 const jwt = require('jsonwebtoken');
 
 const generateToken = (id) => {
@@ -7,58 +7,67 @@ const generateToken = (id) => {
 
 exports.register = async (req, res) => {
     try {
-        const { username, email, password } = req.body; 
-        const userExists = await user.findOne({ where: { email } });
+        const { username, email, password } = req.body;
 
+        const userExists = await Users.findOne({ where: { email } });
         if (userExists) {
             return res.status(401).json({ message: 'Email telah digunakan' });
         }
 
-        const user = await user.create({ username, email, password });
+        const newUser = await Users.create({ username, email, password });
 
-        res.status(201).json({
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            token: generateToken(user.id),
+        return res.status(201).json({
+            id: newUser.id,
+            username: newUser.username,
+            email: newUser.email,
+            token: generateToken(newUser.id),
         });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
     }
 };
 
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await user.findOne({ where: { email } });
+
+        const user = await Users.findOne({ where: { email } });
         if (!user) {
-            return res.status(401).json({ message: 'Email belum terdaftar' });
+            return res.status(404).json({ message: 'Email tidak ditemukan' });
         }
 
         const isMatch = await user.validPassword(password);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Password anda salah' });
+            return res.status(401).json({ message: 'Password salah' });
         }
 
-         res.status(201).json({
+        return res.json({
             id: user.id,
             username: user.username,
             email: user.email,
-            token: generateToken(user.id),
+            token: generateToken(user.id)
         });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
     }
 };
 
 
 exports.getProfile = async (req, res) => {
     try {
-        const user = await user.findByPk(req.user.id, {
-            attributes: ['id', 'username', 'email'],
+        const user = await Users.findByPk(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User tidak ditemukan' });
+        }
+
+        return res.json({
+            id: user.id,
+            username: user.username,
+            email: user.email
         });
-        res.json(user);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
     }
 };

@@ -9,8 +9,8 @@ const auth = async (req, res, next) => {
             throw new Error('');
         }
 
-        const decoded = jwt.verify(token, '');
-        const user = await Users.findOne({ where: { id: decoded.id } });
+        const decoded = jwt.verify(token, 'jwt_key');
+        const user = await Users.findByPk(decoded.id);
 
         if (!user) {
             throw new Error('');
